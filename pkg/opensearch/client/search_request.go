@@ -473,12 +473,10 @@ func (b *SearchRequestBuilder) SetTraceSpansFilters(to, from int64, traceId stri
 
 func (b *aggBuilderImpl) NodeGraph() AggBuilder {
 	b.Terms("service_name", "serviceName", func(a *TermsAggregation, b AggBuilder) {
-		b.Terms("destination_resource", "destination.resource", func(a *TermsAggregation, b AggBuilder) {
-			b.Terms("destination_domain", "destination.domain", nil)
-		})
-		b.Terms("target_resource", "target.resource", func(a *TermsAggregation, b AggBuilder) {
-			b.Terms("target_domain", "target.domain", nil)
-		})
+		b.Terms("destination_resource", "destination.resource", nil)
+		b.Terms("destination_domain", "destination.domain", nil)
+		b.Terms("target_resource", "target.resource", nil)
+		b.Terms("target_domain", "target.domain", nil)
 	})
 	// aggDef := &aggDef{
 	// 	key: "node_graph",
