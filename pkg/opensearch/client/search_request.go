@@ -472,7 +472,7 @@ func (b *SearchRequestBuilder) SetTraceSpansFilters(to, from int64, traceId stri
 }
 
 func (b *aggBuilderImpl) NodeGraph() AggBuilder {
-	b.Terms("service_name", "serviceName", func(a *TermsAggregation, b AggBuilder) {
+	b.Terms("services", "serviceName", func(a *TermsAggregation, b AggBuilder) {
 		b.Terms("destination_resource", "destination.resource", nil)
 		b.Terms("destination_domain", "destination.domain", nil)
 		b.Terms("target_resource", "target.resource", nil)
