@@ -74,7 +74,6 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 		if luceneQueryType == "Traces" && nodeGraph {
 			nodeGraphIndex = i
 			serviceMapQuery = createServiceMapQuery(query)
-			break
 		}
 	}
 	if serviceMapQuery.JSON != nil {
@@ -97,6 +96,7 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 
 	return response, err
 }
+
 func createServiceMapQuery(q backend.DataQuery) backend.DataQuery {
 	model, _ := simplejson.NewJson(q.JSON)
 	model.Set("serviceMapOnly", true)

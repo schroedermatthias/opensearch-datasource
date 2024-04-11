@@ -1,9 +1,10 @@
 package client
 
 import (
+	"strings"
+
 	"github.com/Masterminds/semver"
 	"github.com/grafana/opensearch-datasource/pkg/tsdb"
-	"strings"
 )
 
 // SearchRequestBuilder represents a builder which can build a search request
@@ -158,34 +159,29 @@ func (b *SearchRequestBuilder) SetStatsFilters(to, from int64, traceId string, p
 		Key:    "parentSpanId",
 		Values: []string{""},
 	}
-	emptyParent := Query{
-		&BoolQuery{
-			MustNotFilters: []Filter{parentFilter},
-		},
-	}
-	nonEmptyParent := Query{
-		&BoolQuery{
-			MustFilters: []Filter{parentFilter},
-		},
-	}
-
-	operationFilter := TermsFilter{
-		Key:    "name",
-		Values: parameters.Operations,
-	}
-
 	fqb.AddQuery(Query{
 		&BoolQuery{
 			ShouldFilters: []Filter{
 				Query{
 					&BoolQuery{
 						Filters: []Filter{
-							emptyParent,
-							operationFilter,
+							Query{
+								&BoolQuery{
+									MustNotFilters: []Filter{parentFilter},
+								},
+							},
+							TermsFilter{
+								Key:    "name",
+								Values: parameters.Operations,
+							},
 						},
 					},
 				},
-				nonEmptyParent,
+				Query{
+					&BoolQuery{
+						MustFilters: []Filter{parentFilter},
+					},
+				},
 			},
 		},
 	})
@@ -195,7 +191,6 @@ func (b *SearchRequestBuilder) SetStatsFilters(to, from int64, traceId string, p
 		Lte: to,
 		Gte: from,
 	}
-
 	b.queryBuilder = &QueryBuilder{
 		boolQueryBuilder: &BoolQueryBuilder{
 			mustFilterList: &FilterList{
@@ -295,7 +290,6 @@ func (b *QueryBuilder) Bool() *BoolQueryBuilder {
 type BoolQueryBuilder struct {
 	filterQueryBuilder *FilterQueryBuilder
 	mustFilterList     *FilterList
-	shouldFilterList   *FilterList
 }
 
 // NewBoolQueryBuilder create a new bool query builder

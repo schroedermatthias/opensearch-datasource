@@ -3,6 +3,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
+
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	es "github.com/grafana/opensearch-datasource/pkg/opensearch/client"
@@ -100,36 +101,36 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 					QueryType:       queryType,
 					luceneQueryType: luceneQueryType,
 					RefID:           q.RefID,
-					NodeGraphStuff: NodeGraphStuff{
+					nodeGraphInfo: nodeGraphInfo{
 						Type: ServiceMapOnly,
 					},
 				})
 				//don't append the original query in this case
 				continue
-			} else {
-				queries = append(queries, &Query{
+			}
+			queries = append(queries, &Query{
+				RawQuery:        rawQuery,
+				QueryType:       queryType,
+				luceneQueryType: luceneQueryType,
+				RefID:           q.RefID,
+				nodeGraphInfo: nodeGraphInfo{
+					Type: Stats,
+					Parameters: es.StatsParameters{
+						ServiceNames: model.Get("services").MustStringArray(),
+						Operations:   model.Get("operations").MustStringArray(),
+					},
+				},
+				TimeRange: q.TimeRange,
+			},
+				&Query{
 					RawQuery:        rawQuery,
 					QueryType:       queryType,
 					luceneQueryType: luceneQueryType,
 					RefID:           q.RefID,
-					NodeGraphStuff: NodeGraphStuff{
-						Type: Stats,
-						Parameters: es.StatsParameters{
-							ServiceNames: model.Get("services").MustStringArray(),
-							Operations:   model.Get("operations").MustStringArray(),
-						},
-					},
-					TimeRange: q.TimeRange,
+					nodeGraphInfo:   nodeGraphInfo{Type: ServiceMap},
 				},
-					&Query{
-						RawQuery:        rawQuery,
-						QueryType:       queryType,
-						luceneQueryType: luceneQueryType,
-						RefID:           q.RefID,
-						NodeGraphStuff:  NodeGraphStuff{Type: ServiceMap},
-					},
-				)
-			}
+			)
+			continue
 		}
 
 		queries = append(queries, &Query{
