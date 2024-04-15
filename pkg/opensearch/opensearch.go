@@ -70,7 +70,7 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 	for i, query := range req.Queries {
 		model, _ := simplejson.NewJson(query.JSON)
 		luceneQueryType := model.Get("luceneQueryType").MustString()
-		nodeGraph := model.Get("nodeGraph").MustBool(false)
+		nodeGraph := model.Get("serviceMap").MustBool(false)
 		if luceneQueryType == "Traces" && nodeGraph {
 			serviceMapQueryIndex = i
 			serviceMapQuery = createServiceMapQuery(query)

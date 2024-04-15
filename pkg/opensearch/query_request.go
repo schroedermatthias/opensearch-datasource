@@ -93,7 +93,7 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 		format := model.Get("format").MustString("")
 
 		// separate cause it needs to be build separately as well
-		nodeGraph := model.Get("nodeGraph").MustBool(false)
+		nodeGraph := model.Get("serviceMap").MustBool(false)
 		if luceneQueryType == "Traces" && nodeGraph {
 			if model.Get("serviceMapOnly").MustBool() {
 				queries = append(queries, &Query{
