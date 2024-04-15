@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	simplejson "github.com/bitly/go-simplejson"
+	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	es "github.com/grafana/opensearch-datasource/pkg/opensearch/client"
-	utils "github.com/grafana/opensearch-datasource/pkg/utils"
+	"github.com/grafana/opensearch-datasource/pkg/opensearch/client"
+	"github.com/grafana/opensearch-datasource/pkg/utils"
 )
 
 const (
@@ -42,14 +42,14 @@ const (
 )
 
 type responseParser struct {
-	Responses        []*es.SearchResponse
+	Responses        []*client.SearchResponse
 	Targets          []*Query
-	DebugInfo        *es.SearchDebugInfo
-	ConfiguredFields es.ConfiguredFields
+	DebugInfo        *client.SearchDebugInfo
+	ConfiguredFields client.ConfiguredFields
 	DSSettings       *backend.DataSourceInstanceSettings
 }
 
-func newResponseParser(responses []*es.SearchResponse, targets []*Query, debugInfo *es.SearchDebugInfo, configuredFields es.ConfiguredFields, dsSettings *backend.DataSourceInstanceSettings) *responseParser {
+func newResponseParser(responses []*client.SearchResponse, targets []*Query, debugInfo *client.SearchDebugInfo, configuredFields client.ConfiguredFields, dsSettings *backend.DataSourceInstanceSettings) *responseParser {
 	return &responseParser{
 		Responses:        responses,
 		Targets:          targets,
@@ -114,7 +114,7 @@ func (rp *responseParser) parseResponse() (*backend.QueryDataResponse, error) {
 		case logsType:
 			queryRes = processLogsResponse(res, rp.ConfiguredFields, queryRes)
 		case luceneQueryTypeTraces:
-			switch target.nodeGraphInfo.Type {
+			switch target.serviceMapInfo.Type {
 			case ServiceMapOnly:
 				// service, operations -> dataframes
 				queryRes = processServiceMapOnlyResponse(res, queryRes)
@@ -125,12 +125,14 @@ func (rp *responseParser) parseResponse() (*backend.QueryDataResponse, error) {
 				statsResponseIndex = i
 				statsResponse = res.Aggregations["service_name"].(map[string]interface{})["buckets"].([]interface{})
 				nodeGraphTargetRefId = target.RefID
-			default:
+			case Not:
 				if strings.HasPrefix(target.RawQuery, "traceId:") {
 					queryRes = processTraceSpansResponse(res, queryRes)
 				} else {
 					queryRes = processTraceListResponse(res, rp.DSSettings.UID, rp.DSSettings.Name, queryRes)
 				}
+			default:
+				return nil, fmt.Errorf("unrecognized service map query type: %d", target.serviceMapInfo.Type)
 			}
 		default:
 			props := make(map[string]string)
@@ -154,7 +156,7 @@ func (rp *responseParser) parseResponse() (*backend.QueryDataResponse, error) {
 	return result, nil
 }
 
-func processTraceSpansResponse(res *es.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
+func processTraceSpansResponse(res *client.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
 	propNames := make(map[string]bool)
 	docs := make([]map[string]interface{}, len(res.Hits.Hits))
 
@@ -301,16 +303,17 @@ func createServiceStatsMap(spanServiceStats []interface{}) map[string]interface{
 	}
 	return serviceMap
 }
-func processServiceMapOnlyResponse(res *es.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
-	services, operations := getStuffFromServiceMapResult(res)
+
+func processServiceMapOnlyResponse(res *client.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
+	services, operations := getParametersFromServiceMapResult(res)
 	servicesField := data.NewField("services", nil, services)
 	servicesFrame := data.NewFrame("services", servicesField)
 	operationsField := data.NewField("operations", nil, operations)
 	operationsFrame := data.NewFrame("operations", operationsField)
 	queryRes.Frames = append(queryRes.Frames, servicesFrame, operationsFrame)
 	return queryRes
-
 }
+
 func processServiceMapResponse(serviceMap []interface{}, spanServiceStats []interface{}, duration time.Duration) data.Frames {
 	edgeFields := Fields{}
 	edgeIds := edgeFields.Add("id", nil, []string{})
@@ -372,8 +375,11 @@ func processServiceMapResponse(serviceMap []interface{}, spanServiceStats []inte
 	return data.Frames{edgeFrame, nodeFrame}
 }
 
+// Fields holds a slice of dataframe fields
+// TODO: move this into grafana-plugin-sdk-go? It could work a little nicer there
 type Fields []*data.Field
 
+// Add adds a field to the Fields, with optional config.
 func (f *Fields) Add(name string, labels data.Labels, values interface{}, config ...*data.FieldConfig) *data.Field {
 	field := data.NewField(name, labels, values)
 	if len(config) > 0 {
@@ -383,9 +389,9 @@ func (f *Fields) Add(name string, labels data.Labels, values interface{}, config
 	return field
 }
 
-func processTraceListResponse(res *es.SearchResponse, dsUID string, dsName string, queryRes backend.DataResponse) backend.DataResponse {
+func processTraceListResponse(res *client.SearchResponse, dsUID string, dsName string, queryRes backend.DataResponse) backend.DataResponse {
 	// trace list queries are hardcoded with a fairly hardcoded response format
-	// but es.SearchResponse is deliberately not typed as in other query cases it can be much more open ended
+	// but client.SearchResponse is deliberately not typed as in other query cases it can be much more open ended
 	rawTraces := res.Aggregations["traces"].(map[string]interface{})["buckets"].([]interface{})
 
 	// get values from raw traces response
@@ -433,7 +439,7 @@ func processTraceListResponse(res *es.SearchResponse, dsUID string, dsName strin
 	return queryRes
 }
 
-func processLogsResponse(res *es.SearchResponse, configuredFields es.ConfiguredFields, queryRes backend.DataResponse) backend.DataResponse {
+func processLogsResponse(res *client.SearchResponse, configuredFields client.ConfiguredFields, queryRes backend.DataResponse) backend.DataResponse {
 	propNames := make(map[string]bool)
 	docs := make([]map[string]interface{}, len(res.Hits.Hits))
 
@@ -491,7 +497,7 @@ func processLogsResponse(res *es.SearchResponse, configuredFields es.ConfiguredF
 	return queryRes
 }
 
-func processRawDataResponse(res *es.SearchResponse, configuredFields es.ConfiguredFields, queryRes backend.DataResponse) backend.DataResponse {
+func processRawDataResponse(res *client.SearchResponse, configuredFields client.ConfiguredFields, queryRes backend.DataResponse) backend.DataResponse {
 	propNames := make(map[string]bool)
 	documents := make([]map[string]interface{}, len(res.Hits.Hits))
 	for hitIdx, hit := range res.Hits.Hits {
@@ -546,7 +552,7 @@ func sortPropNames(propNames map[string]bool, fieldsToGoInFront []string) []stri
 	return append(fieldsInFront, sortedPropNames...)
 }
 
-func processRawDocumentResponse(res *es.SearchResponse, refID string, queryRes backend.DataResponse) backend.DataResponse {
+func processRawDocumentResponse(res *client.SearchResponse, refID string, queryRes backend.DataResponse) backend.DataResponse {
 	documents := make([]map[string]interface{}, len(res.Hits.Hits))
 	for hitIdx, hit := range res.Hits.Hits {
 		doc := map[string]interface{}{
@@ -1315,7 +1321,7 @@ func findAgg(target *Query, aggID string) (*BucketAgg, error) {
 	return nil, errors.New("can't found aggDef, aggID:" + aggID)
 }
 
-func getErrorFromOpenSearchResponse(response *es.SearchResponse) error {
+func getErrorFromOpenSearchResponse(response *client.SearchResponse) error {
 	var err error
 	json := utils.NewJsonFromAny(response.Error)
 	reason := json.Get("reason").MustString()

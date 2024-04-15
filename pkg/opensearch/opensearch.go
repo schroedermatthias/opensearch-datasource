@@ -66,13 +66,13 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 	}
 
 	var serviceMapQuery backend.DataQuery
-	var nodeGraphIndex int
+	var serviceMapQueryIndex int
 	for i, query := range req.Queries {
 		model, _ := simplejson.NewJson(query.JSON)
 		luceneQueryType := model.Get("luceneQueryType").MustString()
 		nodeGraph := model.Get("nodeGraph").MustBool(false)
 		if luceneQueryType == "Traces" && nodeGraph {
-			nodeGraphIndex = i
+			serviceMapQueryIndex = i
 			serviceMapQuery = createServiceMapQuery(query)
 		}
 	}
@@ -81,14 +81,14 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 		response, _ := wrapError(query.execute(ctx))
 		services, operations := extractParametersFromServiceMapResponse(response)
 		backend.Logger.Debug("ServiceMap query response", "response", response)
-		model, _ := simplejson.NewJson(req.Queries[nodeGraphIndex].JSON)
+		model, _ := simplejson.NewJson(req.Queries[serviceMapQueryIndex].JSON)
 		model.Set("services", services)
 		model.Set("operations", operations)
 		newJson, err := model.Encode()
 		if err != nil {
 			panic(err)
 		}
-		req.Queries[nodeGraphIndex].JSON = newJson
+		req.Queries[serviceMapQueryIndex].JSON = newJson
 	}
 
 	query := newQueryRequest(osClient, req.Queries, req.PluginContext.DataSourceInstanceSettings, intervalCalculator)
@@ -104,6 +104,7 @@ func createServiceMapQuery(q backend.DataQuery) backend.DataQuery {
 	q.JSON = b
 	return q
 }
+
 func extractParametersFromServiceMapResponse(resp *backend.QueryDataResponse) ([]string, []string) {
 	services := make([]string, 0)
 	operations := make([]string, 0)
@@ -123,11 +124,6 @@ func extractParametersFromServiceMapResponse(resp *backend.QueryDataResponse) ([
 		}
 	}
 	return services, operations
-	//for _, response := range response.Responses {
-	//	for _, frame := range response.Frames {
-	//		if frame.Name ==
-	//	}
-	//}
 }
 
 func wrapError(response *backend.QueryDataResponse, err error) (*backend.QueryDataResponse, error) {

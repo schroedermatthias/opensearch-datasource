@@ -159,7 +159,7 @@ func (b *SearchRequestBuilder) SetStatsFilters(to, from int64, traceId string, p
 		Key:    "parentSpanId",
 		Values: []string{""},
 	}
-	fqb.AddQuery(Query{
+	fqb.AddFilterQuery(Query{
 		&BoolQuery{
 			ShouldFilters: []Filter{
 				Query{
@@ -360,7 +360,7 @@ func (b *FilterQueryBuilder) AddTermsFilter(key string, values []string) *Filter
 	return b
 }
 
-func (b *FilterQueryBuilder) AddQuery(query Query) *FilterQueryBuilder {
+func (b *FilterQueryBuilder) AddFilterQuery(query Query) *FilterQueryBuilder {
 	b.filters = append(b.filters, query)
 	return b
 }
@@ -498,6 +498,7 @@ func (b *aggBuilderImpl) FilterRange(key, field string, fn func(r *RangeFilter, 
 
 	return b
 }
+
 func (b *aggBuilderImpl) Terms(key, field string, fn func(a *TermsAggregation, b AggBuilder)) AggBuilder {
 	innerAgg := &TermsAggregation{
 		Field: field,

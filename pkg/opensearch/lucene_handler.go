@@ -62,14 +62,14 @@ func (h *luceneHandler) processQuery(q *Query) error {
 
 	if q.luceneQueryType == luceneQueryTypeTraces {
 		traceId := getTraceId(q.RawQuery)
-		if q.nodeGraphInfo.Type == ServiceMap || q.nodeGraphInfo.Type == ServiceMapOnly {
+		if q.serviceMapInfo.Type == ServiceMap || q.serviceMapInfo.Type == ServiceMapOnly {
 			b.Size(0)
 			aggBuilder := b.Agg()
 			aggBuilder.ServiceMap()
 			return nil
-		} else if q.nodeGraphInfo.Type == Stats {
+		} else if q.serviceMapInfo.Type == Stats {
 			b.Size(1000)
-			b.SetStatsFilters(toMs, fromMs, traceId, q.nodeGraphInfo.Parameters)
+			b.SetStatsFilters(toMs, fromMs, traceId, q.serviceMapInfo.Parameters)
 			aggBuilder := b.Agg()
 			aggBuilder.Stats()
 			return nil
@@ -293,47 +293,12 @@ func (h *luceneHandler) executeQueries(ctx context.Context) (*backend.QueryDataR
 		return nil, err
 	}
 
-	// var serviceMapQuery *Query
-	// var smResult *client.MultiSearchResponse
-	// for i, q := range h.queries {
-	// 	if q.NodeGraphStuff.Type == ServiceMap {
-	// 		serviceMapResponse := res.Responses[i]
-	// 		// services, operations := getStuffFromServiceMapResult(serviceMapResponse)
-	// 		// statsQuery := &Query{
-	// 		// 	RawQuery:        q.RawQuery,
-	// 		// 	QueryType:       q.QueryType,
-	// 		// 	luceneQueryType: q.luceneQueryType,
-	// 		// 	RefID:           q.RefID,
-	// 		// 	NodeGraphStuff: NodeGraphStuff{
-	// 		// 		Type: Stats,
-	// 		// 		Parameters: client.StatsParameters{
-	// 		// 			ServiceNames: services,
-	// 		// 			Operations:   operations,
-	// 		// 		},
-	// 		// 	},
-	// 		// }
-	// 		// TODO: how do we build this?!
-	// 		//ms := h.client.MultiSearch()
-	// 		//ms.Search()
-
-	// 	}
-	// }
-
-	// if serviceMapQuery != nil {
-	// 	res.Responses = append(res.Responses, smResult.Responses[0])
-	// 	h.queries = append(h.queries, serviceMapQuery)
-	// }
-
 	rp := newResponseParser(res.Responses, h.queries, res.DebugInfo, h.client.GetConfiguredFields(), h.dsSettings)
-	//response, err := rp.parseResponse()
-	//if hasNodeGraph(response) {
-	//	res, err := h.client.ExecuteMultisearch(ctx, statsRequest)
-	//
-	//}
+
 	return rp.parseResponse()
 }
 
-func getStuffFromServiceMapResult(smResult *client.SearchResponse) ([]string, []string) {
+func getParametersFromServiceMapResult(smResult *client.SearchResponse) ([]string, []string) {
 	services := make([]string, 0)
 	operationMap := make(map[string]bool)
 

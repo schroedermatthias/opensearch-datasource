@@ -96,7 +96,6 @@ type Client interface {
 	MultiSearch() *MultiSearchRequestBuilder
 	ExecutePPLQuery(ctx context.Context, r *PPLRequest) (*PPLResponse, error)
 	PPL() *PPLRequestBuilder
-	// ExecuteSearchRequest(ctx context.Context, r *SearchRequest) (*SearchResponse, error)
 	EnableDebug()
 }
 

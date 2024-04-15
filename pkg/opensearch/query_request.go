@@ -6,21 +6,21 @@ import (
 
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	es "github.com/grafana/opensearch-datasource/pkg/opensearch/client"
+	"github.com/grafana/opensearch-datasource/pkg/opensearch/client"
 	"github.com/grafana/opensearch-datasource/pkg/tsdb"
 	"github.com/grafana/opensearch-datasource/pkg/utils"
 )
 
 type queryRequest struct {
-	client             es.Client
+	client             client.Client
 	queries            []backend.DataQuery
 	dsSettings         *backend.DataSourceInstanceSettings
 	intervalCalculator tsdb.IntervalCalculator
 }
 
-func newQueryRequest(client es.Client, queries []backend.DataQuery, dsSettings *backend.DataSourceInstanceSettings, intervalCalculator tsdb.IntervalCalculator) *queryRequest {
+func newQueryRequest(openSearchClient client.Client, queries []backend.DataQuery, dsSettings *backend.DataSourceInstanceSettings, intervalCalculator tsdb.IntervalCalculator) *queryRequest {
 	return &queryRequest{
-		client:             client,
+		client:             openSearchClient,
 		queries:            queries,
 		dsSettings:         dsSettings,
 		intervalCalculator: intervalCalculator,
@@ -101,7 +101,7 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 					QueryType:       queryType,
 					luceneQueryType: luceneQueryType,
 					RefID:           q.RefID,
-					nodeGraphInfo: nodeGraphInfo{
+					serviceMapInfo: serviceMapInfo{
 						Type: ServiceMapOnly,
 					},
 				})
@@ -113,9 +113,9 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 				QueryType:       queryType,
 				luceneQueryType: luceneQueryType,
 				RefID:           q.RefID,
-				nodeGraphInfo: nodeGraphInfo{
+				serviceMapInfo: serviceMapInfo{
 					Type: Stats,
-					Parameters: es.StatsParameters{
+					Parameters: client.StatsParameters{
 						ServiceNames: model.Get("services").MustStringArray(),
 						Operations:   model.Get("operations").MustStringArray(),
 					},
@@ -127,7 +127,7 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 					QueryType:       queryType,
 					luceneQueryType: luceneQueryType,
 					RefID:           q.RefID,
-					nodeGraphInfo:   nodeGraphInfo{Type: ServiceMap},
+					serviceMapInfo:  serviceMapInfo{Type: ServiceMap},
 				},
 			)
 			continue

@@ -22,19 +22,19 @@ type Query struct {
 	Format          string
 	TimeRange       backend.TimeRange
 
-	// nodeGraphInfo is used on the backend to pass information for node graph queries
-	nodeGraphInfo nodeGraphInfo
+	// serviceMapInfo is used on the backend to pass information for service map / node graph queries
+	serviceMapInfo serviceMapInfo
 }
 
-type nodeGraphInfo struct {
-	Type       NodeGraphQueryType
+type serviceMapInfo struct {
+	Type       ServiceMapQueryType
 	Parameters client.StatsParameters
 }
 
-type NodeGraphQueryType int
+type ServiceMapQueryType int
 
 const (
-	Not NodeGraphQueryType = iota
+	Not ServiceMapQueryType = iota
 	ServiceMap
 	Stats
 	ServiceMapOnly

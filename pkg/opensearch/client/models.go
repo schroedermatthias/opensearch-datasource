@@ -100,10 +100,10 @@ type Query struct {
 
 // BoolQuery represents a bool query
 type BoolQuery struct {
-	Filters        []Filter `json:"filter,omitempty"`
-	MustFilters    []Filter `json:"must,omitempty"`
-	MustNotFilters []Filter `json:"must_not,omitempty"`
-	ShouldFilters  []Filter `json:"should,omitempty"`
+	Filters        []Filter
+	MustFilters    []Filter
+	MustNotFilters []Filter
+	ShouldFilters  []Filter
 }
 
 // MarshalJSON returns the JSON encoding of the boolean query.
@@ -125,6 +125,7 @@ func (q *BoolQuery) MarshalJSON() ([]byte, error) {
 			root["must"] = q.MustFilters
 		}
 	}
+
 	if len(q.ShouldFilters) > 0 {
 		if len(q.ShouldFilters) == 1 {
 			root["should"] = q.ShouldFilters[0]
@@ -132,6 +133,7 @@ func (q *BoolQuery) MarshalJSON() ([]byte, error) {
 			root["should"] = q.ShouldFilters
 		}
 	}
+
 	if len(q.MustNotFilters) > 0 {
 		if len(q.MustNotFilters) == 1 {
 			root["must_not"] = q.MustNotFilters[0]
@@ -139,6 +141,7 @@ func (q *BoolQuery) MarshalJSON() ([]byte, error) {
 			root["must_not"] = q.MustNotFilters
 		}
 	}
+
 	return json.Marshal(root)
 }
 
@@ -184,12 +187,13 @@ func (t TermsFilter) MarshalJSON() ([]byte, error) {
 				t.Key: {"value": t.Values[0]},
 			},
 		})
+	} else {
+		return json.Marshal(map[string]map[string][]string{
+			"terms": {
+				t.Key: t.Values,
+			},
+		})
 	}
-	return json.Marshal(map[string]map[string][]string{
-		"terms": {
-			t.Key: t.Values,
-		},
-	})
 }
 
 // RangeFilter represents a range search filter
@@ -262,11 +266,8 @@ type AggContainer struct {
 
 // MarshalJSON returns the JSON encoding of the aggregation container
 func (a *AggContainer) MarshalJSON() ([]byte, error) {
-	root := make(map[string]interface{})
-	if m, ok := a.Aggregation.(json.Marshaler); ok {
-		root[a.Type] = m
-	} else {
-		root[a.Type] = a.Aggregation
+	root := map[string]interface{}{
+		a.Type: a.Aggregation,
 	}
 
 	if len(a.Aggs) > 0 {
@@ -288,26 +289,6 @@ func newAggDef(key string, aggregation *AggContainer) *aggDef {
 		aggregation: aggregation,
 		builders:    make([]AggBuilder, 0),
 	}
-}
-
-type FilterAggregation struct {
-	Key   string
-	Value string
-}
-
-func (f FilterAggregation) MarshalJSON() ([]byte, error) {
-	root := map[string]interface{}{
-		"term": map[string]string{
-			f.Key: f.Value,
-		},
-	}
-
-	return json.Marshal(root)
-}
-
-type BucketScriptAggregation struct {
-	Path   map[string]string `json:"buckets_path"`
-	Script string            `json:"script"`
 }
 
 // HistogramAgg represents a histogram aggregation
@@ -332,6 +313,26 @@ type DateHistogramAgg struct {
 // FiltersAggregation represents a filters aggregation
 type FiltersAggregation struct {
 	Filters map[string]interface{} `json:"filters"`
+}
+
+type FilterAggregation struct {
+	Key   string
+	Value string
+}
+
+func (f FilterAggregation) MarshalJSON() ([]byte, error) {
+	root := map[string]interface{}{
+		"term": map[string]string{
+			f.Key: f.Value,
+		},
+	}
+
+	return json.Marshal(root)
+}
+
+type BucketScriptAggregation struct {
+	Path   map[string]string `json:"buckets_path"`
+	Script string            `json:"script"`
 }
 
 // TermsAggregation represents a terms aggregation
