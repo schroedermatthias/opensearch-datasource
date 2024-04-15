@@ -102,7 +102,7 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 					luceneQueryType: luceneQueryType,
 					RefID:           q.RefID,
 					serviceMapInfo: serviceMapInfo{
-						Type: ServiceMapOnly,
+						Type: Prefetch,
 					},
 				})
 				//don't append the original query in this case

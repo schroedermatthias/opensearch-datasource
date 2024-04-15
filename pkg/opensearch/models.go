@@ -37,7 +37,7 @@ const (
 	Not ServiceMapQueryType = iota
 	ServiceMap
 	Stats
-	ServiceMapOnly
+	Prefetch
 )
 
 // queryHandler is an interface for handling queries of the same type

@@ -115,9 +115,9 @@ func (rp *responseParser) parseResponse() (*backend.QueryDataResponse, error) {
 			queryRes = processLogsResponse(res, rp.ConfiguredFields, queryRes)
 		case luceneQueryTypeTraces:
 			switch target.serviceMapInfo.Type {
-			case ServiceMapOnly:
+			case Prefetch:
 				// service, operations -> dataframes
-				queryRes = processServiceMapOnlyResponse(res, queryRes)
+				queryRes = processPrefetchResponse(res, queryRes)
 			case ServiceMap:
 				serviceMapResponse = res.Aggregations["service_name"].(map[string]interface{})["buckets"].([]interface{})
 				nodeGraphTargetRefId = target.RefID
@@ -304,7 +304,7 @@ func createServiceStatsMap(spanServiceStats []interface{}) map[string]interface{
 	return serviceMap
 }
 
-func processServiceMapOnlyResponse(res *client.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
+func processPrefetchResponse(res *client.SearchResponse, queryRes backend.DataResponse) backend.DataResponse {
 	services, operations := getParametersFromServiceMapResult(res)
 	servicesField := data.NewField("services", nil, services)
 	servicesFrame := data.NewFrame("services", servicesField)

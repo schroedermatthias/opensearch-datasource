@@ -62,29 +62,28 @@ func (h *luceneHandler) processQuery(q *Query) error {
 
 	if q.luceneQueryType == luceneQueryTypeTraces {
 		traceId := getTraceId(q.RawQuery)
-		if q.serviceMapInfo.Type == ServiceMap || q.serviceMapInfo.Type == ServiceMapOnly {
+		switch q.serviceMapInfo.Type {
+		case ServiceMap, Prefetch:
 			b.Size(0)
 			aggBuilder := b.Agg()
 			aggBuilder.ServiceMap()
-			return nil
-		} else if q.serviceMapInfo.Type == Stats {
+		case Stats:
 			b.Size(1000)
 			b.SetStatsFilters(toMs, fromMs, traceId, q.serviceMapInfo.Parameters)
 			aggBuilder := b.Agg()
 			aggBuilder.Stats()
-			return nil
-			// what??
-		} else if traceId != "" {
-			b.Size(1000)
-			b.SetTraceSpansFilters(toMs, fromMs, traceId)
-			return nil
-		} else {
-			b.Size(1000)
-			b.SetTraceListFilters(toMs, fromMs, q.RawQuery)
-			aggBuilder := b.Agg()
-			aggBuilder.TraceList()
-			return nil
+		default:
+			if traceId != "" {
+				b.Size(1000)
+				b.SetTraceSpansFilters(toMs, fromMs, traceId)
+			} else {
+				b.Size(1000)
+				b.SetTraceListFilters(toMs, fromMs, q.RawQuery)
+				aggBuilder := b.Agg()
+				aggBuilder.TraceList()
+			}
 		}
+		return nil
 	}
 
 	filters.AddDateRangeFilter(defaultTimeField, client.DateFormatEpochMS, toMs, fromMs)
