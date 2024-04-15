@@ -87,7 +87,8 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 		model.Set("operations", operations)
 		newJson, err := model.Encode()
 		if err != nil {
-			panic(err)
+			// should be impossible, but just in case
+			return nil, err
 		}
 		req.Queries[serviceMapQueryIndex].JSON = newJson
 	}
