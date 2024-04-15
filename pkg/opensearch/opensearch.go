@@ -74,6 +74,7 @@ func (ds *OpenSearchDatasource) QueryData(ctx context.Context, req *backend.Quer
 		if luceneQueryType == "Traces" && nodeGraph {
 			serviceMapQueryIndex = i
 			serviceMapQuery = createServiceMapQuery(query)
+			break
 		}
 	}
 	if serviceMapQuery.JSON != nil {

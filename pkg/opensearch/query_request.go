@@ -130,7 +130,6 @@ func parse(reqQueries []backend.DataQuery) ([]*Query, error) {
 					serviceMapInfo:  serviceMapInfo{Type: ServiceMap},
 				},
 			)
-			continue
 		}
 
 		queries = append(queries, &Query{
